@@ -6,6 +6,11 @@
 #[cfg(feature = "expr")]
 use abaco::{EvalError, Evaluator, Value};
 
+#[cfg(feature = "expr")]
+thread_local! {
+    static EVALUATOR: Evaluator = Evaluator::new();
+}
+
 /// Evaluate a math expression string and return the result as `f64`.
 #[cfg(feature = "expr")]
 #[must_use = "expression result should be used"]
@@ -14,8 +19,7 @@ pub fn eval_f64(expr: &str) -> Result<f64, ExprError> {
     if trimmed.is_empty() {
         return Err(ExprError::Empty);
     }
-    let evaluator = Evaluator::new();
-    let value = evaluator.eval(trimmed)?;
+    let value = EVALUATOR.with(|ev| ev.eval(trimmed))?;
     let result = value.as_f64().ok_or(ExprError::NotNumeric(value));
     tracing::trace!(expr = trimmed, ok = result.is_ok(), "expression evaluated");
     result

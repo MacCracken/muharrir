@@ -7,7 +7,9 @@
 use ai_hwaccel::{AcceleratorFamily, AcceleratorProfile, AcceleratorRegistry};
 
 /// Quality tier for rendering/viewport, derived from hardware capabilities.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Default, serde::Serialize, serde::Deserialize,
+)]
 #[non_exhaustive]
 pub enum QualityTier {
     /// Software fallback — CPU only, minimal effects.
@@ -34,7 +36,7 @@ impl std::fmt::Display for QualityTier {
 
 /// Editor-relevant hardware profile.
 #[cfg(feature = "hw")]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct HardwareProfile {
     /// Recommended quality tier.
     pub quality: QualityTier,
@@ -90,7 +92,7 @@ impl HardwareProfile {
 
         let device_name = registry
             .best_available()
-            .map(|p| format!("{}", p.accelerator))
+            .map(|p| p.accelerator.to_string())
             .unwrap_or_else(|| "CPU".into());
 
         let quality = classify_quality(registry.best_available(), gpu_memory_bytes);

@@ -8,24 +8,37 @@
 use libro::{AuditChain, AuditEntry, EventSeverity};
 #[cfg(feature = "history")]
 use serde_json::Value;
+#[cfg(feature = "history")]
+use std::borrow::Cow;
 
 /// An editor action recorded in the history.
 #[cfg(feature = "history")]
 #[derive(Debug, Clone)]
 pub struct Action {
     /// What kind of action (e.g. "set_position", "add_layer", "set_gain").
-    pub kind: String,
+    pub kind: Cow<'static, str>,
     /// JSON payload with the action details (before/after state for reversal).
     pub details: Value,
 }
 
 #[cfg(feature = "history")]
 impl Action {
-    /// Create a new action.
+    /// Create a new action with a static kind string (zero-allocation fast path).
     #[must_use]
-    pub fn new(kind: impl Into<String>, details: Value) -> Self {
+    #[inline]
+    pub fn new(kind: &'static str, details: Value) -> Self {
         Self {
-            kind: kind.into(),
+            kind: Cow::Borrowed(kind),
+            details,
+        }
+    }
+
+    /// Create a new action with a dynamic kind string.
+    #[must_use]
+    #[inline]
+    pub fn with_kind(kind: String, details: Value) -> Self {
+        Self {
+            kind: Cow::Owned(kind),
             details,
         }
     }
@@ -52,12 +65,13 @@ impl History {
 
     /// Record a new action. Invalidates the redo stack.
     pub fn record(&mut self, source: &str, action: Action) {
+        let kind_ref: &str = &action.kind;
         self.chain
-            .append(EventSeverity::Info, source, &action.kind, action.details);
+            .append(EventSeverity::Info, source, kind_ref, action.details);
         self.cursor = self.chain.len();
         tracing::debug!(
             source,
-            kind = action.kind,
+            kind = kind_ref,
             cursor = self.cursor,
             "action recorded"
         );
@@ -157,7 +171,7 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    fn action(kind: &str) -> Action {
+    fn action(kind: &'static str) -> Action {
         Action::new(kind, json!({"test": true}))
     }
 
@@ -260,7 +274,10 @@ mod tests {
     fn page_returns_slice() {
         let mut h = History::new();
         for i in 0..10 {
-            h.record("test", action(&format!("action_{i}")));
+            h.record(
+                "test",
+                Action::with_kind(format!("action_{i}"), json!({"test": true})),
+            );
         }
         let page = h.page(5, 3);
         assert_eq!(page.len(), 3);

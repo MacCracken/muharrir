@@ -44,9 +44,7 @@ pub use hierarchy::{FlatEntry, HierarchyNode, NodeId, build_hierarchy, flatten};
 pub use history::{Action, History};
 
 #[cfg(feature = "hw")]
-pub use hw::HardwareProfile;
-#[cfg(feature = "hw")]
-pub use hw::QualityTier;
+pub use hw::{HardwareProfile, QualityTier};
 
 #[cfg(feature = "inspector")]
 pub use inspector::{Property, PropertySheet};

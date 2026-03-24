@@ -43,6 +43,14 @@ impl PropertySheet {
         Self::default()
     }
 
+    /// Create a property sheet with pre-allocated capacity.
+    #[must_use]
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            properties: Vec::with_capacity(capacity),
+        }
+    }
+
     /// Add a property to the sheet.
     pub fn push(&mut self, property: Property) {
         self.properties.push(property);
