@@ -52,11 +52,15 @@ impl History {
 
     /// Record a new action. Invalidates the redo stack.
     pub fn record(&mut self, source: &str, action: Action) {
-        self.cursor = self.chain.len();
         self.chain
             .append(EventSeverity::Info, source, &action.kind, action.details);
         self.cursor = self.chain.len();
-        tracing::debug!(source, kind = action.kind, cursor = self.cursor, "action recorded");
+        tracing::debug!(
+            source,
+            kind = action.kind,
+            cursor = self.cursor,
+            "action recorded"
+        );
     }
 
     /// Whether there are actions that can be undone.
@@ -130,7 +134,8 @@ impl History {
     /// Get entries up to the current cursor (the "applied" history).
     #[must_use]
     pub fn applied_entries(&self) -> &[AuditEntry] {
-        &self.chain.entries()[..self.cursor]
+        let len = self.chain.len();
+        &self.chain.entries()[..self.cursor.min(len)]
     }
 
     /// Get a page of entries for display.
@@ -267,6 +272,31 @@ mod tests {
         let details = json!({"entity": 42, "before": [0, 0, 0], "after": [1, 2, 3]});
         h.record("inspector", Action::new("set_position", details.clone()));
         assert_eq!(h.entries()[0].details(), &details);
+    }
+
+    #[test]
+    fn record_after_undo_invalidates_redo() {
+        let mut h = History::new();
+        h.record("test", action("a"));
+        h.record("test", action("b"));
+        h.record("test", action("c"));
+
+        // Undo twice, then record new action
+        h.undo();
+        h.undo();
+        assert_eq!(h.cursor(), 1);
+
+        h.record("test", action("d"));
+        // New action is appended to chain but cursor points past it
+        assert_eq!(h.cursor(), h.len());
+        assert!(!h.can_redo());
+        assert!(h.can_undo());
+    }
+
+    #[test]
+    fn applied_entries_empty_history() {
+        let h = History::new();
+        assert!(h.applied_entries().is_empty());
     }
 
     #[test]

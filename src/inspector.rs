@@ -64,6 +64,7 @@ impl PropertySheet {
 
     /// Get properties filtered by category.
     #[must_use]
+    #[inline]
     pub fn by_category(&self, category: &str) -> Vec<&Property> {
         self.properties
             .iter()

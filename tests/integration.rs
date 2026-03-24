@@ -80,10 +80,7 @@ fn full_editor_workflow() {
     // Record the action
     history.record(
         "inspector",
-        Action::new(
-            "set_transform",
-            serde_json::json!({"x": x, "y": y}),
-        ),
+        Action::new("set_transform", serde_json::json!({"x": x, "y": y})),
     );
 
     // Record another

@@ -16,7 +16,9 @@ pub fn eval_f64(expr: &str) -> Result<f64, ExprError> {
     }
     let evaluator = Evaluator::new();
     let value = evaluator.eval(trimmed)?;
-    value.as_f64().ok_or(ExprError::NotNumeric(value))
+    let result = value.as_f64().ok_or(ExprError::NotNumeric(value));
+    tracing::trace!(expr = trimmed, ok = result.is_ok(), "expression evaluated");
+    result
 }
 
 /// Evaluate an expression, falling back to a default value on error.

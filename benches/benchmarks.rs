@@ -42,7 +42,12 @@ fn bench_flatten_50(c: &mut Criterion) {
     });
 }
 
-criterion_group!(hierarchy_benches, bench_hierarchy_flat_100, bench_hierarchy_deep_20, bench_flatten_50);
+criterion_group!(
+    hierarchy_benches,
+    bench_hierarchy_flat_100,
+    bench_hierarchy_deep_20,
+    bench_flatten_50
+);
 
 // ---------------------------------------------------------------------------
 // Inspector benchmarks
@@ -53,7 +58,11 @@ fn bench_property_sheet_build(c: &mut Criterion) {
         b.iter(|| {
             let mut sheet = muharrir::PropertySheet::new();
             for i in 0..20 {
-                sheet.push(muharrir::Property::new("Transform", "field", format!("{i}")));
+                sheet.push(muharrir::Property::new(
+                    "Transform",
+                    "field",
+                    format!("{i}"),
+                ));
             }
             black_box(sheet);
         });
@@ -103,7 +112,10 @@ fn bench_history_record(c: &mut Criterion) {
 fn bench_history_undo_redo(c: &mut Criterion) {
     let mut h = muharrir::History::new();
     for i in 0..100 {
-        h.record("bench", muharrir::Action::new("a", serde_json::json!({"i": i})));
+        h.record(
+            "bench",
+            muharrir::Action::new("a", serde_json::json!({"i": i})),
+        );
     }
     c.bench_function("history_undo_redo_cycle", |b| {
         b.iter(|| {
@@ -115,7 +127,11 @@ fn bench_history_undo_redo(c: &mut Criterion) {
 }
 
 #[cfg(feature = "history")]
-criterion_group!(history_benches, bench_history_record, bench_history_undo_redo);
+criterion_group!(
+    history_benches,
+    bench_history_record,
+    bench_history_undo_redo
+);
 
 // ---------------------------------------------------------------------------
 // Hardware benchmarks
@@ -136,7 +152,13 @@ criterion_group!(hw_benches, bench_hw_detect);
 // ---------------------------------------------------------------------------
 
 #[cfg(all(feature = "expr", feature = "history", feature = "hw"))]
-criterion_main!(hierarchy_benches, inspector_benches, expr_benches, history_benches, hw_benches);
+criterion_main!(
+    hierarchy_benches,
+    inspector_benches,
+    expr_benches,
+    history_benches,
+    hw_benches
+);
 
 #[cfg(not(all(feature = "expr", feature = "history", feature = "hw")))]
 criterion_main!(hierarchy_benches, inspector_benches);

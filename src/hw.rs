@@ -67,7 +67,14 @@ impl HardwareProfile {
     #[must_use]
     pub fn detect() -> Self {
         let registry = AcceleratorRegistry::detect();
-        Self::from_registry(&registry)
+        let profile = Self::from_registry(&registry);
+        tracing::debug!(
+            quality = %profile.quality,
+            device = %profile.device_name,
+            gpu = profile.has_gpu,
+            "hardware detected"
+        );
+        profile
     }
 
     /// Build a profile from an existing registry.
@@ -121,11 +128,13 @@ fn classify_quality(best: Option<&AcceleratorProfile>, total_vram: u64) -> Quali
     if matches!(profile.accelerator.family(), AcceleratorFamily::Cpu) {
         return QualityTier::Low;
     }
-    let gib = total_vram / (1024 * 1024 * 1024);
-    match gib {
-        0..=3 => QualityTier::Medium,
-        4..=7 => QualityTier::High,
-        _ => QualityTier::Ultra,
+    let gib = total_vram as f64 / (1024.0 * 1024.0 * 1024.0);
+    if gib < 4.0 {
+        QualityTier::Medium
+    } else if gib < 8.0 {
+        QualityTier::High
+    } else {
+        QualityTier::Ultra
     }
 }
 
@@ -162,6 +171,25 @@ mod tests {
         let gpu = AcceleratorProfile::cuda(0, 6 * 1024 * 1024 * 1024);
         assert_eq!(
             classify_quality(Some(&gpu), 6 * 1024 * 1024 * 1024),
+            QualityTier::High
+        );
+    }
+
+    #[test]
+    fn classify_high_gpu() {
+        let gpu = AcceleratorProfile::cuda(0, 8 * 1024 * 1024 * 1024);
+        assert_eq!(
+            classify_quality(Some(&gpu), 8 * 1024 * 1024 * 1024),
+            QualityTier::Ultra
+        );
+    }
+
+    #[test]
+    fn classify_boundary_4gib() {
+        // Exactly 4 GiB should be High, not Medium
+        let gpu = AcceleratorProfile::cuda(0, 4 * 1024 * 1024 * 1024);
+        assert_eq!(
+            classify_quality(Some(&gpu), 4 * 1024 * 1024 * 1024),
             QualityTier::High
         );
     }

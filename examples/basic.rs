@@ -22,8 +22,16 @@ fn main() {
 
     // -- Inspector --
     let mut sheet = muharrir::PropertySheet::new();
-    sheet.push(muharrir::Property::new("Transform", "position", "(1, 2, 3)"));
-    sheet.push(muharrir::Property::new("Transform", "rotation", "(0, 0, 0)"));
+    sheet.push(muharrir::Property::new(
+        "Transform",
+        "position",
+        "(1, 2, 3)",
+    ));
+    sheet.push(muharrir::Property::new(
+        "Transform",
+        "rotation",
+        "(0, 0, 0)",
+    ));
     sheet.push(muharrir::Property::new("Material", "color", "red"));
 
     println!("\nInspector:");
