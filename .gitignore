@@ -1,0 +1,9 @@
+/target
+Cargo.lock
+coverage/
+bench-history.csv
+benchmarks.md
+*.swp
+*.swo
+*~
+.DS_Store

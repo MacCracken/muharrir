@@ -1,0 +1,45 @@
+[package]
+name = "muharrir"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+license = "GPL-3.0"
+description = "Muharrir — shared editor primitives for AGNOS creative applications"
+homepage = "https://github.com/MacCracken/muharrir"
+repository = "https://github.com/MacCracken/muharrir"
+readme = "README.md"
+documentation = "https://docs.rs/muharrir"
+keywords = ["editor", "undo-redo", "inspector", "hierarchy", "creative-tools"]
+categories = ["gui", "game-engines"]
+exclude = [".claude/", ".github/", "docs/", "scripts/"]
+
+[features]
+default = ["history", "expr", "hw", "hierarchy", "inspector"]
+history = ["dep:libro", "dep:serde_json"]
+expr = ["dep:abaco"]
+hw = ["dep:ai-hwaccel"]
+hierarchy = []
+inspector = []
+personality = ["dep:bhava"]
+full = ["history", "expr", "hw", "hierarchy", "inspector", "personality"]
+
+[dependencies]
+# Ecosystem (feature-gated)
+abaco = { version = "0.22", optional = true }
+ai-hwaccel = { version = "0.23", optional = true }
+bhava = { version = "0.23", optional = true }
+libro = { version = "0.22", optional = true }
+
+# Core
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", optional = true }
+thiserror = "2"
+tracing = "0.1"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+serde_json = "1"
+
+[[bench]]
+name = "benchmarks"
+harness = false
