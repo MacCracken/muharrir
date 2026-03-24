@@ -261,6 +261,48 @@ mod notification_bench {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Selection benchmarks
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "selection")]
+mod selection_bench {
+    use super::*;
+    use muharrir::selection::Selection;
+
+    pub fn bench_selection_toggle_100(c: &mut Criterion) {
+        c.bench_function("selection_toggle_100", |b| {
+            b.iter(|| {
+                let mut sel = Selection::new();
+                for i in 0u64..100 {
+                    sel.toggle(i);
+                }
+                black_box(sel.len());
+            });
+        });
+    }
+
+    pub fn bench_selection_contains(c: &mut Criterion) {
+        let mut sel = Selection::new();
+        for i in 0u64..100 {
+            sel.add(i);
+        }
+        c.bench_function("selection_contains_in_100", |b| {
+            b.iter(|| {
+                black_box(sel.contains(&50));
+                black_box(sel.contains(&999));
+            });
+        });
+    }
+}
+
+#[cfg(feature = "selection")]
+criterion_group!(
+    selection_benches,
+    selection_bench::bench_selection_toggle_100,
+    selection_bench::bench_selection_contains
+);
+
 #[cfg(feature = "notification")]
 criterion_group!(
     notification_benches,
@@ -277,7 +319,8 @@ criterion_group!(
     feature = "history",
     feature = "hw",
     feature = "command",
-    feature = "notification"
+    feature = "notification",
+    feature = "selection"
 ))]
 criterion_main!(
     hierarchy_benches,
@@ -286,7 +329,8 @@ criterion_main!(
     history_benches,
     hw_benches,
     command_benches,
-    notification_benches
+    notification_benches,
+    selection_benches
 );
 
 #[cfg(not(all(
@@ -294,6 +338,7 @@ criterion_main!(
     feature = "history",
     feature = "hw",
     feature = "command",
-    feature = "notification"
+    feature = "notification",
+    feature = "selection"
 )))]
 criterion_main!(hierarchy_benches, inspector_benches);

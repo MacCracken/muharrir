@@ -16,6 +16,7 @@
 //! | `inspector` | yes | — | Property sheet for editor panels |
 //! | `command` | yes | — | Generic command pattern with undo/redo stacks |
 //! | `notification` | yes | — | Toast notifications and persistent log |
+//! | `selection` | yes | — | Generic selection tracking and panel visibility |
 //! | `personality` | no | bhava | NPC personality/emotion editing |
 //! | `full` | no | all above | Everything enabled |
 
@@ -42,6 +43,9 @@ pub mod command;
 #[cfg(feature = "notification")]
 pub mod notification;
 
+#[cfg(feature = "selection")]
+pub mod selection;
+
 // Re-exports
 pub use error::{Error, Result};
 
@@ -65,3 +69,6 @@ pub use command::{Command, CommandHistory, CompoundCommand};
 
 #[cfg(feature = "notification")]
 pub use notification::{Notification, NotificationLog, Severity, Toast, Toasts};
+
+#[cfg(feature = "selection")]
+pub use selection::{PanelStates, Selection};

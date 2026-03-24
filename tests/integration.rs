@@ -245,3 +245,26 @@ fn command_failure_logs_notification() {
     assert_eq!(log.by_severity(Severity::Error).len(), 1);
     assert!(log.entries()[0].message.contains("disk full"));
 }
+
+#[cfg(all(feature = "selection", feature = "inspector"))]
+#[test]
+fn selection_drives_inspector() {
+    use muharrir::selection::Selection;
+
+    // Simulate: select entity, show its properties in inspector
+    let mut sel: Selection<u64> = Selection::new();
+    sel.select(42);
+
+    let mut sheet = PropertySheet::new();
+    if let Some(&id) = sel.primary() {
+        sheet.push(Property::new("Entity", "id", id.to_string()));
+        sheet.push(Property::new("Transform", "position", "(0, 0, 0)"));
+    }
+
+    assert_eq!(sheet.len(), 2);
+    assert_eq!(sheet.properties[0].value, "42");
+
+    // Deselect clears inspector
+    sel.clear();
+    assert!(sel.primary().is_none());
+}
