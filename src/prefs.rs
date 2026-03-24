@@ -38,8 +38,25 @@ pub enum PrefsError {
 pub struct PrefsStore;
 
 impl PrefsStore {
+    /// Maximum preferences file size (1 MiB) to guard against OOM on
+    /// corrupted or malicious files.
+    const MAX_FILE_SIZE: u64 = 1024 * 1024;
+
     /// Load preferences from a JSON file.
+    ///
+    /// Rejects files larger than 1 MiB to prevent excessive memory use.
     pub fn load<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T, PrefsError> {
+        let metadata = std::fs::metadata(path)?;
+        if metadata.len() > Self::MAX_FILE_SIZE {
+            return Err(PrefsError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "preferences file too large ({} bytes, max {})",
+                    metadata.len(),
+                    Self::MAX_FILE_SIZE
+                ),
+            )));
+        }
         let data = std::fs::read_to_string(path)?;
         let prefs = serde_json::from_str(&data)?;
         tracing::debug!(path = %path.display(), "preferences loaded");
@@ -185,6 +202,24 @@ mod tests {
     fn load_nonexistent_returns_error() {
         let result: Result<TestPrefs, _> = PrefsStore::load(Path::new("/no/such/file.json"));
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn load_rejects_oversized_file() {
+        let dir = std::env::temp_dir().join("muharrir_prefs_test_oversized");
+        std::fs::create_dir_all(&dir).ok();
+        let path = dir.join("huge.json");
+
+        // Write a file just over 1 MiB
+        let data = vec![b' '; 1024 * 1024 + 1];
+        std::fs::write(&path, &data).unwrap();
+
+        let result: Result<TestPrefs, _> = PrefsStore::load(&path);
+        assert!(result.is_err());
+        let err_msg = result.unwrap_err().to_string();
+        assert!(err_msg.contains("too large"));
+
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

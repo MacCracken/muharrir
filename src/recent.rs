@@ -34,7 +34,7 @@ impl RecentFiles {
     #[must_use]
     pub fn with_max(max_entries: usize) -> Self {
         Self {
-            entries: Vec::with_capacity(max_entries.min(100)),
+            entries: Vec::with_capacity(max_entries),
             max_entries,
         }
     }
@@ -208,6 +208,20 @@ mod tests {
     #[test]
     fn default_is_empty() {
         let recent = RecentFiles::default();
+        assert!(recent.is_empty());
+    }
+
+    #[test]
+    fn with_max_zero() {
+        let mut recent = RecentFiles::with_max(0);
+        recent.add("/a");
+        assert!(recent.is_empty());
+    }
+
+    #[test]
+    fn with_max_large() {
+        let recent = RecentFiles::with_max(10_000);
+        assert_eq!(recent.max_entries(), 10_000);
         assert!(recent.is_empty());
     }
 

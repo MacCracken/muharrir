@@ -83,9 +83,10 @@ impl PropertySheet {
     /// Get unique category names in order of first appearance.
     #[must_use]
     pub fn categories(&self) -> Vec<&'static str> {
+        let mut seen_set = std::collections::HashSet::new();
         let mut seen = Vec::new();
         for p in &self.properties {
-            if !seen.contains(&p.category) {
+            if seen_set.insert(p.category) {
                 seen.push(p.category);
             }
         }

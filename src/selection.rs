@@ -60,6 +60,7 @@ impl<T: PartialEq + Clone> Selection<T> {
             self.primary_idx = self.adjust_primary_after_remove(pos);
         } else {
             self.items.push(item);
+            // Safe: just pushed, so len >= 1.
             self.primary_idx = Some(self.items.len() - 1);
         }
         tracing::debug!(count = self.items.len(), "selection toggled");
@@ -71,6 +72,7 @@ impl<T: PartialEq + Clone> Selection<T> {
             existing
         } else {
             self.items.push(item);
+            // Safe: just pushed, so len >= 1.
             self.items.len() - 1
         };
         self.primary_idx = Some(pos);
@@ -154,6 +156,9 @@ impl<T: PartialEq + Clone> Selection<T> {
     }
 
     /// Replace the selection with multiple items. The last item becomes primary.
+    ///
+    /// Duplicates are removed (first occurrence kept). Empty iterators
+    /// result in an empty selection with no primary.
     pub fn select_many(&mut self, items: impl IntoIterator<Item = T>) {
         self.items.clear();
         for item in items {
@@ -161,11 +166,7 @@ impl<T: PartialEq + Clone> Selection<T> {
                 self.items.push(item);
             }
         }
-        self.primary_idx = if self.items.is_empty() {
-            None
-        } else {
-            Some(self.items.len() - 1)
-        };
+        self.primary_idx = self.items.len().checked_sub(1);
         tracing::debug!(count = self.items.len(), "selection set");
     }
 }
@@ -411,6 +412,14 @@ mod tests {
         // Remove item after primary
         sel.remove(&3);
         assert_eq!(sel.primary(), Some(&1)); // unchanged
+    }
+
+    #[test]
+    fn selection_select_many_empty() {
+        let mut sel = Selection::new();
+        sel.select_many(Vec::<u64>::new());
+        assert!(sel.is_empty());
+        assert!(sel.primary().is_none());
     }
 
     #[test]

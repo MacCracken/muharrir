@@ -254,7 +254,7 @@ impl NotificationLog {
     #[must_use]
     pub fn with_max_entries(max_entries: usize) -> Self {
         Self {
-            entries: VecDeque::with_capacity(max_entries.min(1024)),
+            entries: VecDeque::with_capacity(max_entries),
             max_entries,
             next_seq: 0,
         }

@@ -5,6 +5,16 @@
 ### Added
 - `CommandHistory::push()` — record an already-applied command onto the undo stack without executing it, for cases where the caller applies externally and just needs history tracking.
 
+### Fixed
+- **command**: `CommandHistory::execute()`/`push()` now correctly handle `max_depth=0` (no-op instead of leaking one entry).
+- **command**: `with_max_depth()` no longer silently caps VecDeque capacity to 1024 — honors the requested depth.
+- **selection**: `select_many([])` no longer risks overflow — uses `checked_sub` for primary index on empty iterators.
+- **hierarchy**: `flatten_node()` now bounded to 512 recursion depth — prevents stack overflow on malformed/deeply-nested trees.
+- **inspector**: `categories()` uses HashSet for dedup — O(n) instead of O(n²).
+- **recent**: `with_max()` no longer silently caps capacity to 100 — honors the requested max.
+- **prefs**: `PrefsStore::load()` rejects files larger than 1 MiB to guard against OOM.
+- **notification**: `NotificationLog::with_max_entries()` no longer caps capacity to 1024 — honors the requested max.
+
 ### Removed
 - `personality` feature flag and `bhava` dependency — personality/emotion editing belongs closer to consuming crates, not in shared editor primitives.
 

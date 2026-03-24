@@ -109,15 +109,31 @@ pub fn flatten(nodes: &[HierarchyNode]) -> Vec<FlatEntry> {
     result
 }
 
+/// Maximum recursion depth for flattening to prevent stack overflow on
+/// malformed or deeply-nested trees.
+const MAX_FLATTEN_DEPTH: usize = 512;
+
 #[inline]
 fn flatten_node(node: &HierarchyNode, result: &mut Vec<FlatEntry>) {
+    flatten_node_bounded(node, result, 0);
+}
+
+fn flatten_node_bounded(node: &HierarchyNode, result: &mut Vec<FlatEntry>, recursion: usize) {
+    if recursion >= MAX_FLATTEN_DEPTH {
+        tracing::warn!(
+            id = node.id,
+            depth = recursion,
+            "flatten_node hit max recursion depth, skipping subtree"
+        );
+        return;
+    }
     result.push(FlatEntry {
         depth: node.depth,
         id: node.id,
         name: node.name.clone(),
     });
     for child in &node.children {
-        flatten_node(child, result);
+        flatten_node_bounded(child, result, recursion + 1);
     }
 }
 
@@ -231,6 +247,22 @@ mod tests {
         let json = serde_json::to_string(&entry).unwrap();
         let deserialized: FlatEntry = serde_json::from_str(&json).unwrap();
         assert_eq!(entry, deserialized);
+    }
+
+    #[test]
+    fn flatten_respects_max_depth() {
+        // Build a chain deeper than MAX_FLATTEN_DEPTH to verify no stack overflow
+        let count = super::MAX_FLATTEN_DEPTH + 10;
+        let ids: Vec<u64> = (0..count as u64).collect();
+        let tree = build_hierarchy(
+            &ids,
+            |id| if id > 0 { Some(id - 1) } else { None },
+            |id| format!("N{id}"),
+        );
+        let flat = flatten(&tree);
+        // Should have capped at MAX_FLATTEN_DEPTH entries (root at depth 0
+        // through depth MAX_FLATTEN_DEPTH-1), skipping the rest
+        assert_eq!(flat.len(), super::MAX_FLATTEN_DEPTH);
     }
 
     #[test]

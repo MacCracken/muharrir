@@ -200,7 +200,7 @@ impl<C> CommandHistory<C> {
     #[must_use]
     pub fn with_max_depth(max_depth: usize) -> Self {
         Self {
-            undo_stack: VecDeque::with_capacity(max_depth.min(1024)),
+            undo_stack: VecDeque::with_capacity(max_depth),
             redo_stack: Vec::new(),
             max_depth,
         }
@@ -254,10 +254,13 @@ impl<C: Command> CommandHistory<C> {
     ///
     /// Use this when the caller has already applied the command externally and
     /// just needs history tracking. Clears the redo stack (branching) and
-    /// evicts the oldest command if at max depth.
+    /// evicts the oldest command if at max depth. No-op when `max_depth` is 0.
     pub fn push(&mut self, cmd: C) {
         tracing::debug!(desc = cmd.description(), "command pushed (no apply)");
         self.redo_stack.clear();
+        if self.max_depth == 0 {
+            return;
+        }
         if self.undo_stack.len() >= self.max_depth {
             self.undo_stack.pop_front();
         }
@@ -271,6 +274,9 @@ impl<C: Command> CommandHistory<C> {
         cmd.apply(target)?;
         tracing::debug!(desc = cmd.description(), "command executed");
         self.redo_stack.clear();
+        if self.max_depth == 0 {
+            return Ok(());
+        }
         if self.undo_stack.len() >= self.max_depth {
             self.undo_stack.pop_front();
         }
@@ -697,6 +703,35 @@ mod tests {
         history.push(PushCmd { value: 2 });
         history.push(PushCmd { value: 3 });
         assert_eq!(history.undo_count(), 2); // oldest evicted
+    }
+
+    #[test]
+    fn history_max_depth_zero() {
+        let mut target = vec![];
+        let mut history = CommandHistory::with_max_depth(0);
+
+        history.execute(PushCmd { value: 1 }, &mut target).unwrap();
+        // Command applied but immediately evicted
+        assert_eq!(target, vec![1]);
+        assert_eq!(history.undo_count(), 0);
+
+        history.push(PushCmd { value: 2 });
+        assert_eq!(history.undo_count(), 0);
+    }
+
+    #[test]
+    fn history_nested_compound() {
+        let mut target = vec![];
+
+        let inner = CompoundCommand::new("inner", vec![PushCmd { value: 1 }, PushCmd { value: 2 }]);
+        let outer = CompoundCommand::new("outer", vec![inner]);
+
+        let mut history: CommandHistory<CompoundCommand<CompoundCommand<PushCmd>>> =
+            CommandHistory::new();
+        history.execute(outer, &mut target).unwrap();
+        assert_eq!(target, vec![1, 2]);
+        history.undo(&mut target).unwrap();
+        assert!(target.is_empty());
     }
 
     #[test]
