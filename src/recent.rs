@@ -53,7 +53,11 @@ impl RecentFiles {
 
     /// Remove a specific path from the list.
     pub fn remove(&mut self, path: &Path) {
+        let before = self.entries.len();
         self.entries.retain(|p| p != path);
+        if self.entries.len() < before {
+            tracing::debug!(count = self.entries.len(), "recent file removed");
+        }
     }
 
     /// All entries, most recent first.

@@ -1,13 +1,17 @@
 # Changelog
 
-## [0.2.0] - 2026-03-23
+## [0.23.3] - 2026-03-23
 
 ### Added
-- **command** module — generic `Command` trait with `apply()`/`reverse()`, `CompoundCommand` for grouped edits with rollback, `CommandHistory` with VecDeque/Vec undo/redo stacks and max-depth eviction. Blanket impl for `Box<dyn Command>` trait objects.
+- **command** module — generic `Command` trait with `apply()`/`reverse()`, `CompoundCommand` for grouped edits with rollback, `CommandHistory` with VecDeque/Vec undo/redo stacks, max-depth eviction, and command preservation on error. Blanket impl for `Box<dyn Command>` trait objects.
 - **notification** module — `Toast` with severity-based auto-expiry and progress tracking, `Toasts` manager with GC, `Notification` persistent log entries, `NotificationLog` with capped VecDeque and severity/source filtering.
 - **selection** module — generic `Selection<T>` tracker with select/toggle/add/remove/primary, `PanelStates` for string-keyed panel visibility with serde persistence.
+- **dirty** module — `DirtyState` generation-based modified tracking with save-point.
+- **recent** module — `RecentFiles` capped MRU list with dedup, prune, serde.
+- **prefs** module — `PrefsStore` generic JSON load/save with directory creation, Unix 0600 permissions, `config_dir()` XDG resolver.
 - `PropertySheet::with_capacity()` for pre-allocation.
 - Serde derives on `QualityTier`, `HardwareProfile`, `FlatEntry`, `PropertySheet` (serialize-only).
+- Example: `command_usage.rs` demonstrating trait objects, compounds, and audit trail composition.
 
 ### Changed
 - `Action::kind` changed from `String` to `Cow<'static, str>` — zero-allocation for static kind strings.
@@ -17,6 +21,7 @@
 - `classify_quality()` uses floating-point division (was integer truncation).
 - Thread-local `Evaluator` in expr module avoids per-call initialization.
 - `CommandHistory::undo()`/`redo()` preserve commands on error (not lost).
+- `CompoundCommand` and `CommandHistory` now derive `Clone` (when `C: Clone`).
 
 ### Fixed
 - `deny.toml` updated for cargo-deny 0.19 format.
