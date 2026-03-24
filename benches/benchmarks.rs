@@ -226,6 +226,49 @@ criterion_group!(
 );
 
 // ---------------------------------------------------------------------------
+// Notification benchmarks
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "notification")]
+mod notification_bench {
+    use super::*;
+    use muharrir::notification::{NotificationLog, Severity, Toasts};
+
+    pub fn bench_toast_push_gc(c: &mut Criterion) {
+        c.bench_function("toast_push_gc_100", |b| {
+            b.iter(|| {
+                let mut toasts = Toasts::new();
+                for _ in 0..100 {
+                    toasts.push("benchmark msg", Severity::Info);
+                }
+                toasts.gc();
+                black_box(toasts.len());
+            });
+        });
+    }
+
+    pub fn bench_notification_log_push(c: &mut Criterion) {
+        c.bench_function("notification_log_push_100", |b| {
+            b.iter(|| {
+                let mut log = NotificationLog::with_max_entries(200);
+                for i in 0..100 {
+                    log.push(black_box("notification message"), Severity::Info, "bench");
+                    black_box(i);
+                }
+                black_box(log.len());
+            });
+        });
+    }
+}
+
+#[cfg(feature = "notification")]
+criterion_group!(
+    notification_benches,
+    notification_bench::bench_toast_push_gc,
+    notification_bench::bench_notification_log_push
+);
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -233,7 +276,8 @@ criterion_group!(
     feature = "expr",
     feature = "history",
     feature = "hw",
-    feature = "command"
+    feature = "command",
+    feature = "notification"
 ))]
 criterion_main!(
     hierarchy_benches,
@@ -241,13 +285,15 @@ criterion_main!(
     expr_benches,
     history_benches,
     hw_benches,
-    command_benches
+    command_benches,
+    notification_benches
 );
 
 #[cfg(not(all(
     feature = "expr",
     feature = "history",
     feature = "hw",
-    feature = "command"
+    feature = "command",
+    feature = "notification"
 )))]
 criterion_main!(hierarchy_benches, inspector_benches);

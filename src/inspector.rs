@@ -30,7 +30,7 @@ impl Property {
 }
 
 /// A collection of properties for a selected object.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct PropertySheet {
     /// All properties gathered for the selected object.
     pub properties: Vec<Property>,
@@ -141,6 +141,18 @@ mod tests {
         let a = Property::new("T", "x", "1");
         let b = Property::new("T", "x", "1");
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn property_sheet_serialize() {
+        let mut sheet = PropertySheet::new();
+        sheet.push(Property::new("Transform", "x", "1.0"));
+        sheet.push(Property::new("Material", "color", "red"));
+
+        let json = serde_json::to_string(&sheet).unwrap();
+        assert!(json.contains("Transform"));
+        assert!(json.contains("Material"));
+        assert!(json.contains("red"));
     }
 
     #[test]

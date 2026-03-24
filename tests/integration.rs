@@ -209,3 +209,39 @@ fn full_editor_workflow() {
     history.redo();
     assert_eq!(history.cursor(), 1);
 }
+
+#[cfg(all(feature = "notification", feature = "command"))]
+#[test]
+fn command_failure_logs_notification() {
+    use muharrir::command::{Command, CommandHistory};
+    use muharrir::notification::{NotificationLog, Severity};
+
+    #[derive(Debug)]
+    struct FailCmd;
+
+    impl Command for FailCmd {
+        type Target = i32;
+        type Error = String;
+        fn apply(&mut self, _t: &mut i32) -> Result<(), String> {
+            Err("disk full".into())
+        }
+        fn reverse(&mut self, _t: &mut i32) -> Result<(), String> {
+            Ok(())
+        }
+        fn description(&self) -> &str {
+            "save"
+        }
+    }
+
+    let mut value = 0i32;
+    let mut history = CommandHistory::new();
+    let mut log = NotificationLog::new();
+
+    if let Err(e) = history.execute(FailCmd, &mut value) {
+        log.push(format!("Command failed: {e}"), Severity::Error, "editor");
+    }
+
+    assert_eq!(log.len(), 1);
+    assert_eq!(log.by_severity(Severity::Error).len(), 1);
+    assert!(log.entries()[0].message.contains("disk full"));
+}

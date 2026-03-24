@@ -15,6 +15,7 @@
 //! | `hierarchy` | yes | — | Generic parent-child tree building |
 //! | `inspector` | yes | — | Property sheet for editor panels |
 //! | `command` | yes | — | Generic command pattern with undo/redo stacks |
+//! | `notification` | yes | — | Toast notifications and persistent log |
 //! | `personality` | no | bhava | NPC personality/emotion editing |
 //! | `full` | no | all above | Everything enabled |
 
@@ -38,6 +39,9 @@ pub mod expr;
 #[cfg(feature = "command")]
 pub mod command;
 
+#[cfg(feature = "notification")]
+pub mod notification;
+
 // Re-exports
 pub use error::{Error, Result};
 
@@ -58,3 +62,6 @@ pub use expr::{ExprError, eval_f64, eval_or, eval_or_parse};
 
 #[cfg(feature = "command")]
 pub use command::{Command, CommandHistory, CompoundCommand};
+
+#[cfg(feature = "notification")]
+pub use notification::{Notification, NotificationLog, Severity, Toast, Toasts};

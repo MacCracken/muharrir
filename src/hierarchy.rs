@@ -22,7 +22,7 @@ pub struct HierarchyNode {
 }
 
 /// A flattened hierarchy entry for display in a list/panel.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FlatEntry {
     /// Nesting depth (0 = root).
     pub depth: usize,
@@ -219,6 +219,18 @@ mod tests {
         // This is expected — cycles aren't trees. Verify no panic at minimum.
         let flat = flatten(&tree);
         assert!(flat.len() <= 2);
+    }
+
+    #[test]
+    fn flat_entry_serde_roundtrip() {
+        let entry = FlatEntry {
+            depth: 2,
+            id: 42,
+            name: "Test Node".into(),
+        };
+        let json = serde_json::to_string(&entry).unwrap();
+        let deserialized: FlatEntry = serde_json::from_str(&json).unwrap();
+        assert_eq!(entry, deserialized);
     }
 
     #[test]

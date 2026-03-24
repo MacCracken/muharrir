@@ -653,9 +653,7 @@ mod tests {
     // -- Fallible command for error-path tests --
 
     #[derive(Debug)]
-    struct FailReverse {
-        applied: bool,
-    }
+    struct FailReverse;
 
     impl Command for FailReverse {
         type Target = Vec<i32>;
@@ -663,7 +661,6 @@ mod tests {
 
         fn apply(&mut self, target: &mut Vec<i32>) -> Result<(), String> {
             target.push(99);
-            self.applied = true;
             Ok(())
         }
 
@@ -680,9 +677,7 @@ mod tests {
     fn history_failed_undo_preserves_command() {
         let mut target = vec![];
         let mut history: CommandHistory<FailReverse> = CommandHistory::new();
-        history
-            .execute(FailReverse { applied: false }, &mut target)
-            .unwrap();
+        history.execute(FailReverse, &mut target).unwrap();
         assert_eq!(history.undo_count(), 1);
 
         let result = history.undo(&mut target);
