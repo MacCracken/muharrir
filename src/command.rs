@@ -79,7 +79,7 @@ where
 /// Commands are applied in order and reversed in reverse order (matching
 /// shruti's `Compound` variant behaviour). If a sub-command fails during
 /// apply, all previously-applied sub-commands are rolled back (best-effort).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CompoundCommand<C> {
     commands: Vec<C>,
     description: Cow<'static, str>,
@@ -178,7 +178,7 @@ const DEFAULT_MAX_DEPTH: usize = 256;
 /// Uses [`VecDeque`] for the undo stack (O(1) eviction at `max_depth`) and
 /// [`Vec`] for the redo stack (only needs push/pop/clear). This matches the
 /// pattern used in shruti's `UndoManager` and rasa's `History`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CommandHistory<C> {
     undo_stack: VecDeque<C>,
     redo_stack: Vec<C>,

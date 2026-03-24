@@ -70,6 +70,7 @@ pub struct Toast {
 
 impl Toast {
     /// Create a toast with severity-based default duration.
+    #[must_use]
     pub fn new(message: impl Into<String>, severity: Severity) -> Self {
         let duration = severity.default_duration();
         Self {
@@ -81,6 +82,7 @@ impl Toast {
     }
 
     /// Create a toast with a custom duration.
+    #[must_use]
     pub fn with_duration(
         message: impl Into<String>,
         severity: Severity,
@@ -164,7 +166,12 @@ impl Toasts {
 
     /// Remove expired toasts. Call each frame.
     pub fn gc(&mut self) {
+        let before = self.active.len();
         self.active.retain(|t| !t.is_expired());
+        let removed = before - self.active.len();
+        if removed > 0 {
+            tracing::trace!(removed, remaining = self.active.len(), "toasts gc");
+        }
     }
 
     /// Active (non-expired) toasts, newest last.
@@ -191,6 +198,7 @@ impl Toasts {
     /// Remove all active toasts.
     pub fn clear(&mut self) {
         self.active.clear();
+        tracing::debug!("toasts cleared");
     }
 }
 

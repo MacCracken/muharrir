@@ -74,6 +74,7 @@ impl<T: PartialEq + Clone> Selection<T> {
             self.items.len() - 1
         };
         self.primary_idx = Some(pos);
+        tracing::debug!(count = self.items.len(), "selection add");
     }
 
     /// Remove a specific item from the selection.
@@ -81,6 +82,7 @@ impl<T: PartialEq + Clone> Selection<T> {
         if let Some(pos) = self.items.iter().position(|i| i == item) {
             self.items.remove(pos);
             self.primary_idx = self.adjust_primary_after_remove(pos);
+            tracing::debug!(count = self.items.len(), "selection remove");
         }
     }
 
@@ -197,6 +199,7 @@ impl PanelStates {
     /// Register a panel with an initial visibility state.
     pub fn register(&mut self, name: &'static str, visible: bool) {
         self.panels.insert(Cow::Borrowed(name), visible);
+        tracing::debug!(panel = name, visible, "panel registered");
     }
 
     /// Whether a panel is visible. Returns `false` for unregistered panels.
@@ -251,6 +254,7 @@ impl PanelStates {
         for v in self.panels.values_mut() {
             *v = true;
         }
+        tracing::debug!("all panels shown");
     }
 
     /// Hide all panels.
@@ -258,6 +262,7 @@ impl PanelStates {
         for v in self.panels.values_mut() {
             *v = false;
         }
+        tracing::debug!("all panels hidden");
     }
 }
 

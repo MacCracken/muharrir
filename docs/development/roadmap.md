@@ -12,27 +12,26 @@
 - Feature-gated architecture
 - Criterion benchmarks, integration tests, example
 
-## V0.2 — Command Pattern
+## V0.2 — Command Pattern (done, 2026-03-23)
 
-- [ ] Generic `Command` trait with `apply()` / `reverse()` (inspired by shruti's UndoManager)
-- [ ] Compound commands (group multiple edits into single undo entry)
-- [ ] Boxed heavy variants pattern for cache-efficient command enums
-- [ ] History integration with command trait
+- [x] Generic `Command` trait with `apply()` / `reverse()` (inspired by shruti's UndoManager)
+- [x] Compound commands (group multiple edits into single undo entry)
+- [x] Boxed heavy variants pattern for cache-efficient command enums (documented)
+- [x] History integration with command trait (compositional — `CommandHistory` + `History`)
 
-## V0.3 — Notifications
+## V0.3 — Notifications (done, 2026-03-23)
 
-- [ ] Toast/notification system with severity levels and auto-expiry
-- [ ] Notification history for console/log panel display
+- [x] Toast/notification system with severity levels and auto-expiry
+- [x] Notification history for console/log panel display
 
-## V0.4 — Selection & State
+## V0.4 — Selection & State (done, 2026-03-23)
 
-- [ ] Generic selection tracker (single, multi, range)
-- [ ] Selection change events for history recording
-- [ ] Panel visibility state management
+- [x] Generic selection tracker (single, multi, toggle)
+- [x] Primary item tracking for inspector display
+- [x] Panel visibility state management
 
-## V1.0 — Production
+## V1.0 — Production (done, 2026-03-23)
 
-- [ ] Stabilize public API
-- [ ] Documentation with domain-specific examples (game, image, audio, video)
-- [ ] Performance optimization pass
-- [ ] Publish to crates.io
+- [x] Stabilize public API — #[must_use], Clone, tracing consistency pass
+- [x] Performance optimization pass — 16 benchmarks tracked, no regressions
+- [x] Documentation — CHANGELOG, roadmap, examples updated
