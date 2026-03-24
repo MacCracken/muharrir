@@ -17,6 +17,9 @@
 //! | `command` | yes | — | Generic command pattern with undo/redo stacks |
 //! | `notification` | yes | — | Toast notifications and persistent log |
 //! | `selection` | yes | — | Generic selection tracking and panel visibility |
+//! | `dirty` | yes | — | Modified/dirty state tracking with save-point |
+//! | `recent` | yes | — | Recent files list with cap and persistence |
+//! | `prefs` | yes | serde_json | Preferences storage with JSON I/O |
 //! | `personality` | no | bhava | NPC personality/emotion editing |
 //! | `full` | no | all above | Everything enabled |
 
@@ -46,6 +49,15 @@ pub mod notification;
 #[cfg(feature = "selection")]
 pub mod selection;
 
+#[cfg(feature = "dirty")]
+pub mod dirty;
+
+#[cfg(feature = "recent")]
+pub mod recent;
+
+#[cfg(feature = "prefs")]
+pub mod prefs;
+
 // Re-exports
 pub use error::{Error, Result};
 
@@ -72,3 +84,12 @@ pub use notification::{Notification, NotificationLog, Severity, Toast, Toasts};
 
 #[cfg(feature = "selection")]
 pub use selection::{PanelStates, Selection};
+
+#[cfg(feature = "dirty")]
+pub use dirty::DirtyState;
+
+#[cfg(feature = "recent")]
+pub use recent::RecentFiles;
+
+#[cfg(feature = "prefs")]
+pub use prefs::{PrefsError, PrefsStore, config_dir};

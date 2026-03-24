@@ -268,3 +268,82 @@ fn selection_drives_inspector() {
     sel.clear();
     assert!(sel.primary().is_none());
 }
+
+#[cfg(all(feature = "dirty", feature = "command"))]
+#[test]
+fn dirty_tracks_command_execution() {
+    use muharrir::command::{Command, CommandHistory};
+    use muharrir::dirty::DirtyState;
+    use std::convert::Infallible;
+
+    #[derive(Debug)]
+    struct Inc;
+    impl Command for Inc {
+        type Target = i32;
+        type Error = Infallible;
+        fn apply(&mut self, t: &mut i32) -> Result<(), Infallible> {
+            *t += 1;
+            Ok(())
+        }
+        fn reverse(&mut self, t: &mut i32) -> Result<(), Infallible> {
+            *t -= 1;
+            Ok(())
+        }
+        fn description(&self) -> &str {
+            "inc"
+        }
+    }
+
+    let mut value = 0i32;
+    let mut history = CommandHistory::new();
+    let mut dirty = DirtyState::new();
+
+    // Execute command → dirty
+    history.execute(Inc, &mut value).unwrap();
+    dirty.mark_dirty();
+    assert!(dirty.is_dirty());
+
+    // Save → clean
+    dirty.mark_clean();
+    assert!(dirty.is_clean());
+
+    // Undo → dirty again
+    history.undo(&mut value).unwrap();
+    dirty.mark_dirty();
+    assert!(dirty.is_dirty());
+    assert_eq!(dirty.changes_since_save(), 1);
+}
+
+#[cfg(all(feature = "recent", feature = "prefs"))]
+#[test]
+fn recent_files_in_preferences() {
+    use muharrir::prefs::PrefsStore;
+    use muharrir::recent::RecentFiles;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Debug, Serialize, Deserialize, Default, PartialEq)]
+    struct AppPrefs {
+        recent: RecentFiles,
+        ui_scale: f32,
+    }
+
+    let mut prefs = AppPrefs {
+        recent: RecentFiles::with_max(5),
+        ui_scale: 1.25,
+    };
+    prefs.recent.add("/projects/game.salai");
+    prefs.recent.add("/projects/demo.salai");
+
+    let path = std::env::temp_dir().join("muharrir_integ_recent_prefs.json");
+    PrefsStore::save(&prefs, &path).unwrap();
+
+    let loaded: AppPrefs = PrefsStore::load(&path).unwrap();
+    assert_eq!(loaded.recent.len(), 2);
+    assert_eq!(
+        loaded.recent.most_recent().unwrap().to_str().unwrap(),
+        "/projects/demo.salai"
+    );
+    assert!((loaded.ui_scale - 1.25).abs() < f32::EPSILON);
+
+    std::fs::remove_file(&path).ok();
+}
