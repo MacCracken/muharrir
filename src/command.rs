@@ -266,24 +266,34 @@ impl<C: Command> CommandHistory<C> {
 
     /// Undo the last command. Returns `Ok(true)` if a command was undone,
     /// `Ok(false)` if the undo stack was empty.
+    ///
+    /// On error the command is restored to the undo stack (not lost).
     pub fn undo(&mut self, target: &mut C::Target) -> Result<bool, C::Error> {
         let Some(mut cmd) = self.undo_stack.pop_back() else {
             return Ok(false);
         };
         tracing::debug!(desc = cmd.description(), "undoing");
-        cmd.reverse(target)?;
+        if let Err(e) = cmd.reverse(target) {
+            self.undo_stack.push_back(cmd);
+            return Err(e);
+        }
         self.redo_stack.push(cmd);
         Ok(true)
     }
 
     /// Redo the last undone command. Returns `Ok(true)` if a command was redone,
     /// `Ok(false)` if the redo stack was empty.
+    ///
+    /// On error the command is restored to the redo stack (not lost).
     pub fn redo(&mut self, target: &mut C::Target) -> Result<bool, C::Error> {
         let Some(mut cmd) = self.redo_stack.pop() else {
             return Ok(false);
         };
         tracing::debug!(desc = cmd.description(), "redoing");
-        cmd.apply(target)?;
+        if let Err(e) = cmd.apply(target) {
+            self.redo_stack.push(cmd);
+            return Err(e);
+        }
         self.undo_stack.push_back(cmd);
         Ok(true)
     }
@@ -638,5 +648,127 @@ mod tests {
         let history: CommandHistory<PushCmd> = CommandHistory::default();
         assert_eq!(history.max_depth(), DEFAULT_MAX_DEPTH);
         assert!(history.undo_stack.is_empty());
+    }
+
+    // -- Fallible command for error-path tests --
+
+    #[derive(Debug)]
+    struct FailReverse {
+        applied: bool,
+    }
+
+    impl Command for FailReverse {
+        type Target = Vec<i32>;
+        type Error = String;
+
+        fn apply(&mut self, target: &mut Vec<i32>) -> Result<(), String> {
+            target.push(99);
+            self.applied = true;
+            Ok(())
+        }
+
+        fn reverse(&mut self, _target: &mut Vec<i32>) -> Result<(), String> {
+            Err("reverse failed".into())
+        }
+
+        fn description(&self) -> &str {
+            "fail reverse"
+        }
+    }
+
+    #[test]
+    fn history_failed_undo_preserves_command() {
+        let mut target = vec![];
+        let mut history: CommandHistory<FailReverse> = CommandHistory::new();
+        history
+            .execute(FailReverse { applied: false }, &mut target)
+            .unwrap();
+        assert_eq!(history.undo_count(), 1);
+
+        let result = history.undo(&mut target);
+        assert!(result.is_err());
+        // Command restored to undo stack, not lost
+        assert_eq!(history.undo_count(), 1);
+        assert_eq!(history.redo_count(), 0);
+    }
+
+    #[test]
+    fn history_failed_redo_preserves_command() {
+        #[derive(Debug)]
+        struct FailSecondApply {
+            count: usize,
+        }
+
+        impl Command for FailSecondApply {
+            type Target = Vec<i32>;
+            type Error = String;
+            fn apply(&mut self, target: &mut Vec<i32>) -> Result<(), String> {
+                self.count += 1;
+                if self.count > 1 {
+                    return Err("second apply failed".into());
+                }
+                target.push(1);
+                Ok(())
+            }
+            fn reverse(&mut self, target: &mut Vec<i32>) -> Result<(), String> {
+                target.pop();
+                Ok(())
+            }
+            fn description(&self) -> &str {
+                "fail second apply"
+            }
+        }
+
+        let mut target = vec![];
+        let mut history = CommandHistory::new();
+        history
+            .execute(FailSecondApply { count: 0 }, &mut target)
+            .unwrap();
+        history.undo(&mut target).unwrap();
+        assert_eq!(history.redo_count(), 1);
+
+        let result = history.redo(&mut target);
+        assert!(result.is_err());
+        // Command restored to redo stack, not lost
+        assert_eq!(history.redo_count(), 1);
+        assert_eq!(history.undo_count(), 0);
+    }
+
+    #[test]
+    fn history_max_depth_one() {
+        let mut target = vec![];
+        let mut history = CommandHistory::with_max_depth(1);
+
+        history.execute(PushCmd { value: 1 }, &mut target).unwrap();
+        history.execute(PushCmd { value: 2 }, &mut target).unwrap();
+        assert_eq!(history.undo_count(), 1);
+
+        // Can only undo the last command
+        history.undo(&mut target).unwrap();
+        assert_eq!(target, vec![1]); // value 2 undone, value 1 remains (its command was evicted)
+    }
+
+    #[test]
+    fn history_compound_through_history() {
+        let mut target = vec![];
+        let mut history: CommandHistory<CompoundCommand<PushCmd>> = CommandHistory::new();
+
+        let compound = CompoundCommand::new(
+            "batch push",
+            vec![
+                PushCmd { value: 10 },
+                PushCmd { value: 20 },
+                PushCmd { value: 30 },
+            ],
+        );
+        history.execute(compound, &mut target).unwrap();
+        assert_eq!(target, vec![10, 20, 30]);
+        assert_eq!(history.undo_count(), 1);
+
+        history.undo(&mut target).unwrap();
+        assert!(target.is_empty());
+
+        history.redo(&mut target).unwrap();
+        assert_eq!(target, vec![10, 20, 30]);
     }
 }
