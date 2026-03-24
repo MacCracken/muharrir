@@ -57,11 +57,7 @@ impl<T: PartialEq + Clone> Selection<T> {
     pub fn toggle(&mut self, item: T) {
         if let Some(pos) = self.items.iter().position(|i| *i == item) {
             self.items.remove(pos);
-            self.primary_idx = if self.items.is_empty() {
-                None
-            } else {
-                Some(self.items.len() - 1)
-            };
+            self.primary_idx = self.adjust_primary_after_remove(pos);
         } else {
             self.items.push(item);
             self.primary_idx = Some(self.items.len() - 1);
@@ -84,11 +80,25 @@ impl<T: PartialEq + Clone> Selection<T> {
     pub fn remove(&mut self, item: &T) {
         if let Some(pos) = self.items.iter().position(|i| i == item) {
             self.items.remove(pos);
-            self.primary_idx = if self.items.is_empty() {
-                None
-            } else {
-                Some(self.items.len().saturating_sub(1))
-            };
+            self.primary_idx = self.adjust_primary_after_remove(pos);
+        }
+    }
+
+    /// Adjust primary_idx after removing an item at `removed_pos`.
+    fn adjust_primary_after_remove(&self, removed_pos: usize) -> Option<usize> {
+        let primary = self.primary_idx?;
+        if self.items.is_empty() {
+            return None;
+        }
+        if removed_pos == primary {
+            // Primary was removed — fall back to last item
+            Some(self.items.len().saturating_sub(1))
+        } else if removed_pos < primary {
+            // Item before primary removed — shift index down
+            Some(primary - 1)
+        } else {
+            // Item after primary removed — no change
+            Some(primary)
         }
     }
 
@@ -196,11 +206,13 @@ impl PanelStates {
         self.panels.get(name).copied().unwrap_or(false)
     }
 
-    /// Set a panel's visibility.
+    /// Set a panel's visibility. No-op for unregistered panels.
     pub fn set_visible(&mut self, name: &str, visible: bool) {
         if let Some(v) = self.panels.get_mut(name) {
             *v = visible;
             tracing::debug!(panel = name, visible, "panel visibility changed");
+        } else {
+            tracing::warn!(panel = name, "set_visible called on unregistered panel");
         }
     }
 
@@ -345,6 +357,55 @@ mod tests {
         sel.select_many([1u64, 2, 1, 3, 2]);
         assert_eq!(sel.len(), 3);
         assert_eq!(sel.items(), &[1, 2, 3]);
+    }
+
+    #[test]
+    fn selection_remove_preserves_primary() {
+        let mut sel = Selection::new();
+        sel.select_many([1u64, 2, 3, 4, 5]);
+        // Primary is 5 (last, index 4)
+        assert_eq!(sel.primary(), Some(&5));
+
+        // Remove item before primary — primary stays at 5
+        sel.remove(&2);
+        assert_eq!(sel.items(), &[1, 3, 4, 5]);
+        assert_eq!(sel.primary(), Some(&5));
+
+        // Remove primary itself — falls back to last
+        sel.remove(&5);
+        assert_eq!(sel.items(), &[1, 3, 4]);
+        assert_eq!(sel.primary(), Some(&4));
+    }
+
+    #[test]
+    fn selection_toggle_off_preserves_primary() {
+        let mut sel = Selection::new();
+        sel.select_many([1u64, 2, 3]);
+        // Primary is at index 2 (value 3)
+        assert_eq!(sel.primary(), Some(&3));
+
+        // Toggle off item before primary
+        sel.toggle(1);
+        assert_eq!(sel.items(), &[2, 3]);
+        assert_eq!(sel.primary(), Some(&3)); // still 3, not shifted to 2
+    }
+
+    #[test]
+    fn selection_remove_after_primary_no_shift() {
+        let mut sel = Selection::new();
+        sel.select(1u64);
+        sel.add(2);
+        sel.add(3);
+        // Primary is at index 2 (value 3, last added)
+        assert_eq!(sel.primary(), Some(&3));
+
+        // Select item 1 as primary
+        sel.add(1);
+        assert_eq!(sel.primary(), Some(&1)); // index 0
+
+        // Remove item after primary
+        sel.remove(&3);
+        assert_eq!(sel.primary(), Some(&1)); // unchanged
     }
 
     #[test]
