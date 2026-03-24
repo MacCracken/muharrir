@@ -14,6 +14,7 @@
 //! | `hw` | yes | ai-hwaccel | Hardware detection and quality tiers |
 //! | `hierarchy` | yes | — | Generic parent-child tree building |
 //! | `inspector` | yes | — | Property sheet for editor panels |
+//! | `command` | yes | — | Generic command pattern with undo/redo stacks |
 //! | `personality` | no | bhava | NPC personality/emotion editing |
 //! | `full` | no | all above | Everything enabled |
 
@@ -34,6 +35,9 @@ pub mod inspector;
 #[cfg(feature = "expr")]
 pub mod expr;
 
+#[cfg(feature = "command")]
+pub mod command;
+
 // Re-exports
 pub use error::{Error, Result};
 
@@ -51,3 +55,6 @@ pub use inspector::{Property, PropertySheet};
 
 #[cfg(feature = "expr")]
 pub use expr::{ExprError, eval_f64, eval_or, eval_or_parse};
+
+#[cfg(feature = "command")]
+pub use command::{Command, CommandHistory, CompoundCommand};

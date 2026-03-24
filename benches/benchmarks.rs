@@ -148,17 +148,106 @@ fn bench_hw_detect(c: &mut Criterion) {
 criterion_group!(hw_benches, bench_hw_detect);
 
 // ---------------------------------------------------------------------------
+// Command benchmarks
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "command")]
+mod command_bench {
+    use super::*;
+    use muharrir::command::{Command, CommandHistory, CompoundCommand};
+    use std::convert::Infallible;
+
+    #[derive(Debug)]
+    struct PushCmd(i32);
+
+    impl Command for PushCmd {
+        type Target = Vec<i32>;
+        type Error = Infallible;
+        fn apply(&mut self, t: &mut Vec<i32>) -> Result<(), Infallible> {
+            t.push(self.0);
+            Ok(())
+        }
+        fn reverse(&mut self, t: &mut Vec<i32>) -> Result<(), Infallible> {
+            t.pop();
+            Ok(())
+        }
+        fn description(&self) -> &str {
+            "push"
+        }
+    }
+
+    pub fn bench_command_execute_100(c: &mut Criterion) {
+        c.bench_function("command_execute_100", |b| {
+            b.iter(|| {
+                let mut target = Vec::with_capacity(100);
+                let mut history = CommandHistory::with_max_depth(200);
+                for i in 0..100 {
+                    history.execute(PushCmd(i), &mut target).unwrap();
+                }
+                black_box(&target);
+            });
+        });
+    }
+
+    pub fn bench_command_undo_redo_cycle(c: &mut Criterion) {
+        let mut target = Vec::new();
+        let mut history = CommandHistory::with_max_depth(200);
+        for i in 0..100 {
+            history.execute(PushCmd(i), &mut target).unwrap();
+        }
+        c.bench_function("command_undo_redo_cycle", |b| {
+            b.iter(|| {
+                history.undo(&mut target).unwrap();
+                history.redo(&mut target).unwrap();
+                black_box(&target);
+            });
+        });
+    }
+
+    pub fn bench_command_compound_10(c: &mut Criterion) {
+        c.bench_function("command_compound_10", |b| {
+            b.iter(|| {
+                let mut target = Vec::new();
+                let cmds: Vec<PushCmd> = (0..10).map(PushCmd).collect();
+                let mut compound = CompoundCommand::new("batch", cmds);
+                compound.apply(&mut target).unwrap();
+                black_box(&target);
+            });
+        });
+    }
+}
+
+#[cfg(feature = "command")]
+criterion_group!(
+    command_benches,
+    command_bench::bench_command_execute_100,
+    command_bench::bench_command_undo_redo_cycle,
+    command_bench::bench_command_compound_10
+);
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-#[cfg(all(feature = "expr", feature = "history", feature = "hw"))]
+#[cfg(all(
+    feature = "expr",
+    feature = "history",
+    feature = "hw",
+    feature = "command"
+))]
 criterion_main!(
     hierarchy_benches,
     inspector_benches,
     expr_benches,
     history_benches,
-    hw_benches
+    hw_benches,
+    command_benches
 );
 
-#[cfg(not(all(feature = "expr", feature = "history", feature = "hw")))]
+#[cfg(not(all(
+    feature = "expr",
+    feature = "history",
+    feature = "hw",
+    feature = "command"
+)))]
 criterion_main!(hierarchy_benches, inspector_benches);

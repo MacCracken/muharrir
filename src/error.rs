@@ -14,6 +14,11 @@ pub enum Error {
     #[error("history error: {0}")]
     History(String),
 
+    /// Command execution failed.
+    #[cfg(feature = "command")]
+    #[error("command error: {0}")]
+    Command(String),
+
     /// Serialization/deserialization failed.
     #[error("serialization error: {0}")]
     Serde(String),

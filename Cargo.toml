@@ -14,14 +14,15 @@ categories = ["gui", "game-engines"]
 exclude = [".claude/", ".github/", "docs/", "scripts/"]
 
 [features]
-default = ["history", "expr", "hw", "hierarchy", "inspector"]
+default = ["history", "expr", "hw", "hierarchy", "inspector", "command"]
 history = ["dep:libro", "dep:serde_json"]
 expr = ["dep:abaco"]
 hw = ["dep:ai-hwaccel"]
 hierarchy = []
 inspector = []
+command = []
 personality = ["dep:bhava"]
-full = ["history", "expr", "hw", "hierarchy", "inspector", "personality"]
+full = ["history", "expr", "hw", "hierarchy", "inspector", "command", "personality"]
 
 [dependencies]
 # Ecosystem (feature-gated)

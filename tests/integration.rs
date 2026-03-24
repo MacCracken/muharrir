@@ -68,6 +68,114 @@ fn hardware_detection_works() {
     assert!(!profile.device_name.is_empty());
 }
 
+#[cfg(all(feature = "command", feature = "inspector"))]
+#[test]
+fn command_modifies_inspector() {
+    use muharrir::command::{Command, CommandHistory};
+    use std::convert::Infallible;
+
+    #[derive(Debug)]
+    struct SetValue {
+        name: &'static str,
+        old_value: String,
+        new_value: String,
+    }
+
+    impl Command for SetValue {
+        type Target = PropertySheet;
+        type Error = Infallible;
+
+        fn apply(&mut self, target: &mut PropertySheet) -> Result<(), Infallible> {
+            if let Some(p) = target.properties.iter_mut().find(|p| p.name == self.name) {
+                self.old_value = std::mem::replace(&mut p.value, self.new_value.clone());
+            }
+            Ok(())
+        }
+
+        fn reverse(&mut self, target: &mut PropertySheet) -> Result<(), Infallible> {
+            if let Some(p) = target.properties.iter_mut().find(|p| p.name == self.name) {
+                p.value = self.old_value.clone();
+            }
+            Ok(())
+        }
+
+        fn description(&self) -> &str {
+            "set value"
+        }
+    }
+
+    let mut sheet = PropertySheet::new();
+    sheet.push(Property::new("Transform", "x", "0.0"));
+
+    let mut history = CommandHistory::new();
+    history
+        .execute(
+            SetValue {
+                name: "x",
+                old_value: String::new(),
+                new_value: "5.0".into(),
+            },
+            &mut sheet,
+        )
+        .unwrap();
+
+    assert_eq!(sheet.properties[0].value, "5.0");
+
+    history.undo(&mut sheet).unwrap();
+    assert_eq!(sheet.properties[0].value, "0.0");
+
+    history.redo(&mut sheet).unwrap();
+    assert_eq!(sheet.properties[0].value, "5.0");
+}
+
+#[cfg(all(feature = "command", feature = "history"))]
+#[test]
+fn command_with_audit_trail() {
+    use muharrir::command::{Command, CommandHistory};
+    use std::convert::Infallible;
+
+    #[derive(Debug)]
+    struct Inc;
+
+    impl Command for Inc {
+        type Target = i32;
+        type Error = Infallible;
+        fn apply(&mut self, t: &mut i32) -> Result<(), Infallible> {
+            *t += 1;
+            Ok(())
+        }
+        fn reverse(&mut self, t: &mut i32) -> Result<(), Infallible> {
+            *t -= 1;
+            Ok(())
+        }
+        fn description(&self) -> &str {
+            "increment"
+        }
+    }
+
+    let mut value = 0i32;
+    let mut commands = CommandHistory::new();
+    let mut audit = History::new();
+
+    // Execute command and record in audit trail
+    commands.execute(Inc, &mut value).unwrap();
+    audit.record(
+        "command",
+        Action::new("increment", serde_json::json!({"value": value})),
+    );
+
+    commands.execute(Inc, &mut value).unwrap();
+    audit.record(
+        "command",
+        Action::new("increment", serde_json::json!({"value": value})),
+    );
+
+    assert_eq!(value, 2);
+    assert_eq!(commands.undo_count(), 2);
+    assert_eq!(audit.len(), 2);
+    assert!(audit.verify());
+}
+
 #[cfg(all(feature = "history", feature = "expr"))]
 #[test]
 fn full_editor_workflow() {
