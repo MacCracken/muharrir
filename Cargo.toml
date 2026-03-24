@@ -1,6 +1,6 @@
 [package]
 name = "muharrir"
-version = "0.23.3"
+version = "0.23.4"
 edition = "2024"
 rust-version = "1.89"
 license = "GPL-3.0-only"
@@ -26,14 +26,12 @@ selection = []
 dirty = []
 recent = []
 prefs = ["dep:serde_json"]
-personality = ["dep:bhava"]
-full = ["history", "expr", "hw", "hierarchy", "inspector", "command", "notification", "selection", "dirty", "recent", "prefs", "personality"]
+full = ["history", "expr", "hw", "hierarchy", "inspector", "command", "notification", "selection", "dirty", "recent", "prefs"]
 
 [dependencies]
 # Ecosystem (feature-gated)
 abaco = { version = "0.22", optional = true }
 ai-hwaccel = { version = "0.23", optional = true }
-bhava = { version = "0.23", optional = true }
 libro = { version = "0.22", optional = true }
 
 # Core

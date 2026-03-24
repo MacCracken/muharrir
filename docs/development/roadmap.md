@@ -16,8 +16,17 @@
 - [ ] Command improvements — `undo_description()`, `redo_description()`, command merging
 - [ ] Expression improvements — variable binding `eval_with_vars()`, compiled expressions
 
+## Future — Wishlist
+
+- [ ] `tool` module — abstract tool trait (activate/deactivate/input handling); likely needs a dedicated crate
+- [ ] `plugin` module — plugin registry/loading; likely needs a dedicated crate
+
 ## Future — Consumer Migration
 
 - [ ] Migration guides for shruti, tazama, rasa
 - [ ] API freeze
 - [ ] Full documentation with domain-specific examples
+
+## Moved to ranga
+
+Visual primitives (PixelBuffer, Color, Filter, Geometry, Spatial Selection) belong in ranga, not muharrir.

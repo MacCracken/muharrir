@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.23.4] - 2026-03-24
+
+### Added
+- `CommandHistory::push()` — record an already-applied command onto the undo stack without executing it, for cases where the caller applies externally and just needs history tracking.
+
+### Removed
+- `personality` feature flag and `bhava` dependency — personality/emotion editing belongs closer to consuming crates, not in shared editor primitives.
+
 ## [0.23.3] - 2026-03-23
 
 ### Added

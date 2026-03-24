@@ -204,6 +204,18 @@ mod command_bench {
         });
     }
 
+    pub fn bench_command_push_100(c: &mut Criterion) {
+        c.bench_function("command_push_100", |b| {
+            b.iter(|| {
+                let mut history = CommandHistory::with_max_depth(200);
+                for i in 0..100 {
+                    history.push(PushCmd(i));
+                }
+                black_box(history.undo_count());
+            });
+        });
+    }
+
     pub fn bench_command_compound_10(c: &mut Criterion) {
         c.bench_function("command_compound_10", |b| {
             b.iter(|| {
@@ -221,6 +233,7 @@ mod command_bench {
 criterion_group!(
     command_benches,
     command_bench::bench_command_execute_100,
+    command_bench::bench_command_push_100,
     command_bench::bench_command_undo_redo_cycle,
     command_bench::bench_command_compound_10
 );

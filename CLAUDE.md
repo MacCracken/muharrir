@@ -30,7 +30,7 @@ muharrir/
 └── examples/basic.rs
 ```
 
-Feature flags: `hierarchy`, `inspector`, `history`, `expr`, `hw`, `personality`, `full`.
+Feature flags: `hierarchy`, `inspector`, `history`, `expr`, `hw`, `command`, `notification`, `selection`, `dirty`, `recent`, `prefs`, `full`.
 Default: `hierarchy`, `inspector`, `history`, `expr`, `hw`.
 
 ## Development Process

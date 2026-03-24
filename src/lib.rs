@@ -20,7 +20,6 @@
 //! | `dirty` | yes | — | Modified/dirty state tracking with save-point |
 //! | `recent` | yes | — | Recent files list with cap and persistence |
 //! | `prefs` | yes | serde_json | Preferences storage with JSON I/O |
-//! | `personality` | no | bhava | NPC personality/emotion editing |
 //! | `full` | no | all above | Everything enabled |
 
 pub mod error;

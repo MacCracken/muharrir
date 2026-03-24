@@ -250,6 +250,20 @@ impl<C> CommandHistory<C> {
 }
 
 impl<C: Command> CommandHistory<C> {
+    /// Push an already-applied command onto the undo stack without executing it.
+    ///
+    /// Use this when the caller has already applied the command externally and
+    /// just needs history tracking. Clears the redo stack (branching) and
+    /// evicts the oldest command if at max depth.
+    pub fn push(&mut self, cmd: C) {
+        tracing::debug!(desc = cmd.description(), "command pushed (no apply)");
+        self.redo_stack.clear();
+        if self.undo_stack.len() >= self.max_depth {
+            self.undo_stack.pop_front();
+        }
+        self.undo_stack.push_back(cmd);
+    }
+
     /// Execute a command: apply it to the target, then push onto the undo stack.
     ///
     /// Clears the redo stack (branching). Evicts the oldest command if at max depth.
@@ -641,6 +655,48 @@ mod tests {
         assert!(!history.can_redo());
         assert_eq!(history.undo_count(), 0);
         assert_eq!(history.redo_count(), 0);
+    }
+
+    #[test]
+    fn history_push_without_apply() {
+        let mut target = vec![10, 20];
+        let mut history = CommandHistory::new();
+
+        // Push without applying — target unchanged
+        history.push(PushCmd { value: 99 });
+        assert_eq!(target, vec![10, 20]);
+        assert_eq!(history.undo_count(), 1);
+        assert!(!history.can_redo());
+
+        // Undo reverses the pushed command
+        history.undo(&mut target).unwrap();
+        assert_eq!(target, vec![10]); // pop from reverse
+        assert_eq!(history.undo_count(), 0);
+        assert_eq!(history.redo_count(), 1);
+    }
+
+    #[test]
+    fn history_push_clears_redo() {
+        let mut target = vec![];
+        let mut history = CommandHistory::new();
+
+        history.execute(PushCmd { value: 1 }, &mut target).unwrap();
+        history.undo(&mut target).unwrap();
+        assert!(history.can_redo());
+
+        // Push clears redo stack (branching)
+        history.push(PushCmd { value: 2 });
+        assert!(!history.can_redo());
+    }
+
+    #[test]
+    fn history_push_respects_max_depth() {
+        let mut history = CommandHistory::with_max_depth(2);
+
+        history.push(PushCmd { value: 1 });
+        history.push(PushCmd { value: 2 });
+        history.push(PushCmd { value: 3 });
+        assert_eq!(history.undo_count(), 2); // oldest evicted
     }
 
     #[test]
